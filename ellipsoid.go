@@ -163,3 +163,31 @@ func (e *Ellipsoid) ToGeo3D(pos *vec3.T) *Geo3D {
 	}
 	return &Geo3D{*e.ToGeo2D(p), height}
 }
+
+// ComputeCurve Calculates a series of points from the start to the stop and granularity radians between points.
+func (e *Ellipsoid) ComputeCurve(start, stop *vec3.T, granularity float64) []*vec3.T {
+	if granularity <= 0 {
+		panic("granularity must be greater than 0")
+	}
+
+	normal := vec3.Cross(start, stop)
+	normal.Normalize()
+	theta := vec3.Angle(start, stop)
+	n := int(theta/granularity) - 1
+	if n < 0 {
+		n = 0
+	}
+
+	positions := make([]*vec3.T, 0, n+2)
+
+	positions = append(positions, start)
+
+	for i := 1; i <= n; i++ {
+		phi := float64(i) * granularity
+
+		positions = append(positions, e.ScaleToGeocentricSurface(rotateAroundAxis(start, &normal, phi)))
+	}
+	positions = append(positions, stop)
+
+	return positions
+}
